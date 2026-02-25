@@ -1,71 +1,36 @@
-import streamlit as st
-import numpy as np
 import scipy.io as sio
+import numpy as np
+import streamlit as st
 
-# 載入資料（只執行一次）
-if 'ref_table' not in st.session_state:
-    mat_data = sio.loadmat('Ref_Table.mat')
-    st.session_state.ref_table = mat_data['Ref_Table']  # 依你的實際變數名調整
-    st.session_state.num_items = st.session_state.ref_table.shape[1]
-    st.session_state.seed_list = np.random.choice(
-        st.session_state.num_items, 
-        st.session_state.num_items, 
-        replace=True
-    )
+# 預先載入.mat檔案（假設檔案在同目錄）
+ref_table = sio.loadmat('Ref_Table.mat')['Ref_Table']
 
-# 初始化遊戲狀態
-if 's' not in st.session_state:
-    st.session_state.s = -1          # -1 表示還沒開始
-if 'current_hint' not in st.session_state:
-    st.session_state.current_hint = None
-if 'current_ans' not in st.session_state:
-    st.session_state.current_ans = None
-if 'guess_submitted' not in st.session_state:
-    st.session_state.guess_submitted = False
+# 初始化（類似MATLAB的預先執行）
+num_cols = ref_table.shape[1]  # Ref_Table的列數
+seed_list = np.random.choice(num_cols, num_cols, replace=True)  # 隨機樣本
 
+# Streamlit網頁介面
 st.title("猜字遊戲")
 
-# 按鈕：開始新的一輪 / 下一題
-if st.button("開始新的一輪 / 下一題"):
-    st.session_state.s += 1
-    idx = st.session_state.s % len(st.session_state.seed_list)  # 循環使用
-    item_idx = st.session_state.seed_list[idx]
-    
-    # 假設你的結構是 ref_table[0, item_idx] 是 struct
-    phrase = st.session_state.ref_table[0, item_idx]['Phrase'][0]
-    word   = st.session_state.ref_table[0, item_idx]['Word'][0]
-    
-    # 隨機選 4 個位置
-    pos = np.random.choice(len(phrase), 4, replace=False)
-    hint_list = [phrase[i] for i in pos]
-    
-    st.session_state.current_hint = hint_list
-    st.session_state.current_ans   = word
-    st.session_state.guess_submitted = False   # 重置提交狀態
-    st.rerun()   # 立即刷新畫面（可選，但可讓介面更乾淨）
+# 使用session state來追蹤遊戲狀態（類似你的s）
+if 's' not in st.session_state:
+    st.session_state.s = 0
 
-# 顯示目前的 Hint
-if st.session_state.current_hint is not None:
-    st.write("**Hint：**", "　".join(st.session_state.current_hint))
+if st.button("開始新的一輪"):
+    st.session_state.s += 1
+    s = st.session_state.s
+    phrase_size = ref_table[0][seed_list[s-1]]['Phrase'].shape[1]  # 調整存取方式
+    idx = np.random.choice(phrase_size, 4, replace=False)  # 隨機選4個不重複
     
-    user_guess = st.text_input("請輸入你要接的字：", key="guess_input")
+    # 取出Hint和Ans（需根據結構調整）
+    hint = ref_table[0][seed_list[s-1]]['Phrase'][0][idx]  # 假設是cell array
+    ans = ref_table[0][seed_list[s-1]]['Word'][0][0]  # 假設是單一字串
+
+    st.write("Hint:", hint)
+    user_guess = st.text_input("猜猜上面要接什麼字？")
     
     if st.button("檢查答案"):
-        st.session_state.guess_submitted = True
-        st.rerun()   # 強制重新執行以顯示結果
-
-    # 只在提交後顯示結果（避免按檢查時又產生新題）
-    if st.session_state.guess_submitted:
-        if user_guess.strip() == st.session_state.current_ans:
-            st.success(f"正確！答案就是：{st.session_state.current_ans}")
+        if user_guess == ans:
+            st.success("正確！")
         else:
-            st.error(f"錯了～ 正解是：{st.session_state.current_ans}")
-        
-        # 可選：顯示正確答案後自動準備下一題的提示
-        if st.button("看完答案 → 下一題"):
-            st.session_state.s += 1
-            # ... 同上面的出題邏輯 ...
-            st.rerun()
-
-else:
-    st.info("請先按「開始新的一輪 / 下一題」開始遊戲～")
+            st.error("錯了，正解是: " + ans)

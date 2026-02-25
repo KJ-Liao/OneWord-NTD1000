@@ -27,10 +27,10 @@ if 'guess_submitted' not in st.session_state:
     st.session_state.guess_submitted = False
 
 # 標題
-st.title("猜字遊戲")
+st.title("一字千金")
 
-# 按鈕：開始新的一輪 / 下一題
-if st.button("開始新的一輪 / 下一題"):
+# 按鈕：新題目
+if st.button("新題目"):
     st.session_state.s += 1
     s = st.session_state.s
     item_idx = st.session_state.seed_list[s % len(st.session_state.seed_list)]  # 避免 index out of range
@@ -77,11 +77,5 @@ if st.session_state.current_hint is not None:
         else:
             st.error(f"錯了～ 正解是：{correct_ans}")
 
-        # 可選：看完後直接給下一題的按鈕
-        if st.button("下一題"):
-            st.session_state.s += 1
-            st.session_state.guess_submitted = False
-            st.rerun()
-
 else:
-    st.info("請按「開始新的一輪 / 下一題」開始遊戲～")
+    st.info("請按「新題目」開始遊戲～")
